@@ -5,7 +5,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public record User(int id, String name) {
+public record User(Integer id, String name) {
     public User(String name) {
         this(0, name);
     }
@@ -14,14 +14,9 @@ public record User(int id, String name) {
         try (var connection = Db.pool.getConnection()) {
             try (var statement = connection.createStatement()) {
                 var users = new ArrayList<User>();
-                try (var resultSet = statement.executeQuery(
-                        "SELECT * FROM users")
-                ) {
+                try (var resultSet = statement.executeQuery("SELECT * FROM users")) {
                     while (resultSet.next()) {
-                        users.add(new User(
-                                resultSet.getInt("id"),
-                                resultSet.getString("name")
-                        ));
+                        users.add(new User(resultSet.getInt("id"), resultSet.getString("name")));
                     }
                 }
                 return users;
@@ -29,38 +24,30 @@ public record User(int id, String name) {
         }
     }
 
-    public static User findOne(int id) throws SQLException {
+    public static User findOne(Integer id) throws SQLException {
         try (var connection = Db.pool.getConnection()) {
-            try (var statement = connection.prepareStatement(
-                    "SELECT * FROM users where id = ?")
-            ) {
+            try (var statement = connection.prepareStatement("SELECT * FROM users where id = ?")) {
                 statement.setInt(1, id);
                 try (var resultSet = statement.executeQuery()) {
                     resultSet.first();
-                    return new User(
-                            resultSet.getInt("id"),
-                            resultSet.getString("name")
-                    );
+                    return new User(resultSet.getInt("id"), resultSet.getString("name"));
                 }
             }
         }
     }
 
-    public static void delete(int id) throws SQLException {
+    public static void delete(Integer id) throws SQLException {
         try (var connection = Db.pool.getConnection()) {
-            try (var statement = connection.prepareStatement(
-                    "DELETE FROM users WHERE id = ?")
-            ) {
+            try (var statement = connection.prepareStatement("DELETE FROM users WHERE id = ?")) {
                 statement.setInt(1, id);
                 statement.executeUpdate();
             }
         }
     }
 
-    public int insert() throws SQLException {
+    public Integer insert() throws SQLException {
         try (var connection = Db.pool.getConnection()) {
-            try (var statement = connection.prepareStatement(
-                    "INSERT INTO users (name) VALUES (?)",
+            try (var statement = connection.prepareStatement("INSERT INTO users (name) VALUES (?)",
                     Statement.RETURN_GENERATED_KEYS
             )
             ) {
