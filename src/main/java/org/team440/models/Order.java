@@ -8,12 +8,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public record Order(Integer id, User user, List<BookOrder> bookOrders,
-                    LocalDateTime date) {
-    public Order(
-            User user, List<BookOrder> bookOrders, LocalDateTime date
-    ) {
-        this(null, user, bookOrders, date);
+public record Order(Integer id, User user, List<BookOrder> bookOrders, LocalDateTime date) {
+    public Order(User user, List<BookOrder> bookOrders, LocalDateTime date) {
+        this(0, user, bookOrders, date);
     }
 
     public static List<Order> find() throws SQLException {
@@ -21,25 +18,17 @@ public record Order(Integer id, User user, List<BookOrder> bookOrders,
         return innerOrders.stream()
                 .map(InnerOrder::id)
                 .distinct()
-                .map(id -> innerOrders.stream()
-                        .filter(innerOrder -> Objects.equals(innerOrder.id(),
-                                id
-                        ))
-                        .toList())
+                .map(id -> innerOrders.stream().filter(innerOrder -> Objects.equals(innerOrder.id(), id)).toList())
                 .map(idOrder -> {
                     var bookOrders = idOrder.stream().map(innerOrder -> {
                         try {
-                            return new BookOrder(
-                                    Book.findOne(innerOrder.bookId()),
-                                    innerOrder.quantity()
-                            );
+                            return new BookOrder(Book.findOne(innerOrder.bookId()), innerOrder.quantity());
                         } catch (SQLException e) {
                             throw new RuntimeException(e);
                         }
                     });
-                    Order order;
                     try {
-                        order = new Order(idOrder.get(0).id(),
+                        return new Order(idOrder.get(0).id(),
                                 User.findOne(idOrder.get(0).userId()),
                                 bookOrders.toList(),
                                 idOrder.get(0).date()
@@ -47,15 +36,13 @@ public record Order(Integer id, User user, List<BookOrder> bookOrders,
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
-                    return order;
                 })
                 .toList();
     }
 
-    public static void delete(int id) throws SQLException {
+    public static void delete(Integer id) throws SQLException {
         try (var connection = Db.pool.getConnection()) {
-            try (var statement = connection.prepareStatement(
-                    "DELETE FROM orders WHERE id = ?")
+            try (var statement = connection.prepareStatement("DELETE FROM orders WHERE id = ?")
             ) {
                 statement.setInt(1, id);
                 statement.executeUpdate();
@@ -64,49 +51,38 @@ public record Order(Integer id, User user, List<BookOrder> bookOrders,
     }
 
     public void insert() throws SQLException {
-        bookOrders.stream().map(bookOrder -> new InnerOrder(this.user.id(),
-                bookOrder.book().id(),
-                bookOrder.quantity(),
-                this.date
-        )).forEach(innerOrder -> {
-            try {
-                innerOrder.insert();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        InnerOrder.insert(this.bookOrders.stream()
+                .map(bookOrder -> new InnerOrder(this.user.id(),
+                        bookOrder.book().id(),
+                        bookOrder.quantity(),
+                        this.date
+                ))
+                .toList());
     }
 
     public String bookOrdersToString() {
         return this.bookOrders.stream()
-                .map(bookOrder -> bookOrder.book()
-                        .title() + ": " + bookOrder.quantity())
+                .map(bookOrder -> bookOrder.book().title() + ": " + bookOrder.quantity())
                 .collect(Collectors.joining("\n"));
     }
 
-    public double amount() {
+    public Double amount() {
         return this.bookOrders.stream()
-                .map(bookOrder -> bookOrder.book()
-                        .price() * bookOrder.quantity())
+                .map(bookOrder -> bookOrder.book().price() * bookOrder.quantity())
                 .reduce(0.0, Double::sum);
     }
 }
 
-record InnerOrder(Integer id, int userId, int bookId, int quantity,
-                  LocalDateTime date) {
-    InnerOrder(
-            int userId, int bookId, int quantity, LocalDateTime date
-    ) {
-        this(null, userId, bookId, quantity, date);
+record InnerOrder(Integer id, Integer userId, Integer bookId, Integer quantity, LocalDateTime date) {
+    InnerOrder(Integer userId, Integer bookId, Integer quantity, LocalDateTime date) {
+        this(0, userId, bookId, quantity, date);
     }
 
     static List<InnerOrder> find() throws SQLException {
         try (var connection = Db.pool.getConnection()) {
             try (var statement = connection.createStatement()) {
                 var innerOrders = new ArrayList<InnerOrder>();
-                try (var resultSet = statement.executeQuery(
-                        "SELECT * FROM orders")
-                ) {
+                try (var resultSet = statement.executeQuery("SELECT * FROM orders")) {
                     while (resultSet.next()) {
                         innerOrders.add(new InnerOrder(resultSet.getInt("id"),
                                 resultSet.getInt("user_id"),
@@ -121,24 +97,24 @@ record InnerOrder(Integer id, int userId, int bookId, int quantity,
         }
     }
 
-    public void insert() throws SQLException {
+    static void insert(List<InnerOrder> innerOrders) throws SQLException {
         try (var connection = Db.pool.getConnection()) {
             try (var queryStatement = connection.createStatement()) {
-                try (var resultSet = queryStatement.executeQuery(
-                        "SELECT MAX(id) as max_id FROM orders")
-                ) {
+                try (var resultSet = queryStatement.executeQuery("SELECT MAX(id) as max_id FROM orders")) {
                     resultSet.first();
-                    var maxId = resultSet.getInt("max_id");
-                    try (var statement = connection.prepareStatement(
-                            "INSERT INTO orders VALUES (?, ?, ?, ?, ?)")
-                    ) {
-                        statement.setInt(1, maxId + 1);
-                        statement.setInt(2, this.userId);
-                        statement.setInt(3, this.bookId);
-                        statement.setInt(4, this.quantity);
-                        statement.setTimestamp(5, Timestamp.valueOf(this.date));
-                        statement.executeUpdate();
-                    }
+                    var id = resultSet.getInt("max_id") + 1;
+                    innerOrders.forEach(innerOrder -> {
+                        try (var statement = connection.prepareStatement("INSERT INTO orders VALUES (?, ?, ?, ?, ?)")) {
+                            statement.setInt(1, id);
+                            statement.setInt(2, innerOrder.userId);
+                            statement.setInt(3, innerOrder.bookId);
+                            statement.setInt(4, innerOrder.quantity);
+                            statement.setTimestamp(5, Timestamp.valueOf(innerOrder.date));
+                            statement.executeUpdate();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                 }
             }
         }

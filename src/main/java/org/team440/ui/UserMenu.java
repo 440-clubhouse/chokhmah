@@ -1,61 +1,58 @@
 package org.team440.ui;
 
 import org.team440.models.User;
+import org.team440.ui.components.ErrorMessageBox;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.sql.SQLException;
 
 public class UserMenu extends JFrame {
-    private final JTable table;
-    private final DefaultTableModel tableModel;
+    public UserMenu() {
+        this.setTitle("User Management");
+        try {
+            var model = new DefaultTableModel(User.find()
+                    .stream()
+                    .map(user -> new Object[]{user.id(), user.name()})
+                    .toArray(Object[][]::new), new Object[]{"ID", "Name"});
+            var table = new JTable(model);
 
-    public UserMenu() throws SQLException {
-        tableModel = new DefaultTableModel(new Object[]{"ID", "Name"}, 0);
-        for (var user : User.find()) {
-            Object[] row = {user.id(), user.name()};
-            tableModel.addRow(row);
-        }
-        table = new JTable(tableModel);
-        table.setComponentPopupMenu(createPopupMenu());
-        JScrollPane scrollPane = new JScrollPane(table);
-        getContentPane().add(scrollPane);
-        setTitle("User Management");
-        setSize(400, 300);
-        setLocationRelativeTo(null);
-    }
-
-    private JPopupMenu createPopupMenu() {
-        JPopupMenu popupMenu = new JPopupMenu();
-
-        JMenuItem createMenuItem = new JMenuItem("Create a new user");
-        createMenuItem.addActionListener(e -> {
-            String name = JOptionPane.showInputDialog(this, "Your name:");
-            int id;
-            try {
-                id = new User(name).insert();
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            }
-            Object[] row = {id, name};
-            tableModel.addRow(row);
-        });
-        popupMenu.add(createMenuItem);
-
-        JMenuItem deleteMenuItem = new JMenuItem("Remove the user");
-        deleteMenuItem.addActionListener(e -> {
-            int selectedRow = table.getSelectedRow();
-            if (selectedRow != -1) {
-                int id = (int) tableModel.getValueAt(selectedRow, 0);
+            var addMenuItem = new JMenuItem("Add a user");
+            var removeMenuItem = new JMenuItem("Remove the user");
+            addMenuItem.addActionListener(e -> {
+                var name = JOptionPane.showInputDialog(this, "Your name:", "Add a user", JOptionPane.PLAIN_MESSAGE);
+                if (name == null) {
+                    return;
+                }
                 try {
-                    User.delete(id);
+                    model.addRow(new Object[]{new User(name).insert(), name});
+                } catch (SQLException exception) {
+                    ErrorMessageBox.of(exception);
+                }
+            });
+            removeMenuItem.addActionListener(e -> {
+                var selectedRow = table.getSelectedRow();
+                if (selectedRow == -1) {
+                    return;
+                }
+                try {
+                    User.delete((Integer) model.getValueAt(selectedRow, 0));
+                    model.removeRow(selectedRow);
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);
                 }
-                tableModel.removeRow(selectedRow);
-            }
-        });
-        popupMenu.add(deleteMenuItem);
-        return popupMenu;
+            });
+            var popupMenu = new JPopupMenu();
+            popupMenu.add(addMenuItem);
+            popupMenu.add(removeMenuItem);
+            table.setComponentPopupMenu(popupMenu);
+
+            this.setContentPane(new JScrollPane(table));
+            this.pack();
+            this.setLocationRelativeTo(null);
+            this.setVisible(true);
+        } catch (SQLException e) {
+            ErrorMessageBox.of(e);
+        }
     }
 }

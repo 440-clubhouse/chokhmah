@@ -4,6 +4,10 @@ import javax.swing.*;
 
 public class ErrorMessageBox {
     public static void of(Exception e) {
-        JOptionPane.showMessageDialog(null, e.getMessage());
+        JOptionPane.showMessageDialog(null,
+                e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+        );
     }
 }

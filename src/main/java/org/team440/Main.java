@@ -8,7 +8,6 @@ import java.sql.SQLException;
 public class Main {
     public static void main(String[] args) throws SQLException {
         Db.init();
-        var login = new AdminMain();
-        login.showUI();
+        new AdminMain();
     }
 }

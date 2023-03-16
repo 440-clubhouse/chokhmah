@@ -4,184 +4,170 @@ import org.team440.models.Book;
 import org.team440.models.BookOrder;
 import org.team440.models.Order;
 import org.team440.models.User;
+import org.team440.ui.components.ErrorMessageBox;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 public class OrderMenu extends JFrame {
-    private final JPopupMenu popupMenu;
-    private final JTable table;
+    private final JTable table = new JTable();
     private DefaultTableModel model;
 
     public OrderMenu() {
-        setTitle("Order Management");
-        setPreferredSize(new Dimension(700, 400));
-
-        table = new JTable();
-        init();
-
-        popupMenu = new JPopupMenu();
-        var createMenuItem = new JMenuItem("Create a new order");
-        var deleteMenuItem = new JMenuItem("Remove the order");
-        createMenuItem.addActionListener(e -> {
-            try {
-                createOrder();
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            }
-        });
-        deleteMenuItem.addActionListener(this::deleteOrder);
-        popupMenu.add(createMenuItem);
-        popupMenu.add(deleteMenuItem);
-
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    int row = table.rowAtPoint(e.getPoint());
-                    if (row >= 0 && row < table.getRowCount()) {
-                        table.setRowSelectionInterval(row, row);
-                    } else {
-                        table.clearSelection();
-                    }
-                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
-                }
-            }
-        });
-
+        this.setTitle("Order Management");
         this.addWindowFocusListener(new WindowAdapter() {
             @Override
             public void windowGainedFocus(WindowEvent e) {
-                init();
+                refreshModel();
             }
         });
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        getContentPane().add(scrollPane, BorderLayout.CENTER);
-
-        pack();
-        setLocationRelativeTo(null);
-        setVisible(true);
-    }
-
-    private void init() {
-        model = new DefaultTableModel(new String[]{"ID", "User name", "Books", "Amount", "Date"},
-                0
-        );
-        table.setModel(model);
-
-        try {
-            var orders = Order.find();
-            for (var order : orders) {
-                model.addRow(new Object[]{order.id(), order.user().name(), order.bookOrdersToString(), order.amount(), order.date().format(
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))});
+        var addMenuItem = new JMenuItem("Add an order");
+        var removeMenuItem = new JMenuItem("Remove the order");
+        addMenuItem.addActionListener(e -> new AddOrderDialog(this));
+        removeMenuItem.addActionListener(e -> {
+            var selectedRow = this.table.getSelectedRow();
+            if (selectedRow == -1) {
+                return;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void createOrder() throws SQLException {
-        new CreateOrderDialog(this).setVisible(true);
-    }
-
-    private void deleteOrder(ActionEvent e) {
-        int row = table.getSelectedRow();
-        if (row >= 0 && row < model.getRowCount()) {
-            int id = (int) model.getValueAt(row, 0);
             try {
-                Order.delete(id);
-                model.removeRow(row);
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+                Order.delete((Integer) this.model.getValueAt(selectedRow, 0));
+                this.model.removeRow(selectedRow);
+            } catch (SQLException exception) {
+                ErrorMessageBox.of(exception);
             }
+        });
+        var popupMenu = new JPopupMenu();
+        popupMenu.add(addMenuItem);
+        popupMenu.add(removeMenuItem);
+        this.table.setComponentPopupMenu(popupMenu);
+
+        this.setContentPane(new JScrollPane(this.table));
+        this.pack();
+        this.setLocationRelativeTo(null);
+        this.setVisible(true);
+    }
+
+    private void refreshModel() {
+        try {
+            this.model = new DefaultTableModel(Order.find()
+                    .stream()
+                    .map(order -> new Object[]{order.id(), order.user().name(), order.bookOrdersToString(), order.amount(), order.date()})
+                    .toArray(Object[][]::new), new String[]{"ID", "User name", "Books", "Amount", "Date"});
+            this.table.setModel(this.model);
+        } catch (SQLException e) {
+            ErrorMessageBox.of(e);
         }
     }
 }
 
-class CreateOrderDialog extends JDialog {
-    private final JComboBox<Object> userMenu;
-    private final JComboBox<Object> bookMenu;
+class AddOrderDialog extends JDialog {
+    private Integer boxCounter = 1;
+
+    AddOrderDialog(Frame owner) {
+        super(owner, "Add an order", true);
+        try {
+            var users = User.find();
+            var books = Book.find();
+
+            var userMenu = new JComboBox<>(users.stream().map(User::name).toArray(String[]::new));
+            var dateSpinner = new JSpinner(new SpinnerDateModel());
+            var verticalBox = Box.createVerticalBox();
+
+            var addButton = new JButton("Add");
+            var removeButton = new JButton("Remove");
+            var saveButton = new JButton("Save");
+            var cancelButton = new JButton("Cancel");
+            addButton.addActionListener(e -> {
+                verticalBox.add(new BookOrderPanel(books));
+                this.boxCounter++;
+                verticalBox.revalidate();
+                verticalBox.repaint();
+                this.pack();
+                this.setLocationRelativeTo(null);
+            });
+            removeButton.addActionListener(e -> {
+                if (this.boxCounter <= 1) {
+                    return;
+                }
+                verticalBox.remove(--this.boxCounter);
+                verticalBox.revalidate();
+                verticalBox.repaint();
+                this.pack();
+                this.setLocationRelativeTo(null);
+            });
+            saveButton.addActionListener(e -> {
+                try {
+                    new Order(
+                            users.get(userMenu.getSelectedIndex()),
+                            Arrays.stream(verticalBox.getComponents())
+                                    .map(component -> ((BookOrderPanel) component).toBookOrder())
+                                    .toList(),
+                            LocalDateTime.ofInstant(((Date) dateSpinner.getValue()).toInstant(), ZoneId.systemDefault())
+                    ).insert();
+                } catch (SQLException exception) {
+                    ErrorMessageBox.of(exception);
+                }
+                this.dispose();
+            });
+            cancelButton.addActionListener(e -> this.dispose());
+
+            var topPanel = new JPanel();
+            topPanel.add(new JLabel("User:"));
+            topPanel.add(userMenu);
+            topPanel.add(new JLabel("Date:"));
+            topPanel.add(dateSpinner);
+
+            verticalBox.add(new BookOrderPanel(books));
+
+            var bottomPanel = new JPanel();
+            bottomPanel.add(addButton);
+            bottomPanel.add(removeButton);
+            bottomPanel.add(saveButton);
+            bottomPanel.add(cancelButton);
+
+            var mainPanel = new JPanel(new BorderLayout(5, 5));
+            mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            mainPanel.add(topPanel, BorderLayout.NORTH);
+            mainPanel.add(verticalBox, BorderLayout.CENTER);
+            mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+            this.setContentPane(mainPanel);
+            this.pack();
+            this.setLocationRelativeTo(null);
+            this.setVisible(true);
+        } catch (SQLException e) {
+            ErrorMessageBox.of(e);
+        }
+    }
+}
+
+class BookOrderPanel extends JPanel {
+    private final JComboBox<String> bookMenu;
     private final JSpinner quantitySpinner;
-    private final JSpinner dateSpinner;
-    private final List<User> users;
     private final List<Book> books;
 
-    public CreateOrderDialog(Frame owner) throws SQLException {
-        super(owner, "Order Creation", true);
-        users = User.find();
-        books = Book.find();
-        var userLabel = new JLabel("User:");
-        var bookLabel = new JLabel("Book:");
-        var quantityLabel = new JLabel("Quantity:");
-        var dateLabel = new JLabel("Date:");
-        userMenu = new JComboBox<>(users.stream().map(User::name).toArray());
-        bookMenu = new JComboBox<>(books.stream().map(Book::title).toArray());
-        SpinnerNumberModel quantityModel = new SpinnerNumberModel(0,
-                0,
-                Integer.MAX_VALUE,
-                1
-        );
-        quantitySpinner = new JSpinner(quantityModel);
-        dateSpinner = new JSpinner(new SpinnerDateModel());
-        var saveButton = new JButton("Save");
-        var cancelButton = new JButton("Cancel");
+    BookOrderPanel(List<Book> books) {
+        this.bookMenu = new JComboBox<>(books.stream().map(Book::title).toArray(String[]::new));
+        this.quantitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
+        this.books = books;
 
-        JPanel inputPanel = new JPanel(new GridLayout(4, 2, 5, 5));
-        inputPanel.add(userLabel);
-        inputPanel.add(userMenu);
-        inputPanel.add(bookLabel);
-        inputPanel.add(bookMenu);
-        inputPanel.add(quantityLabel);
-        inputPanel.add(quantitySpinner);
-        inputPanel.add(dateLabel);
-        inputPanel.add(dateSpinner);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.add(saveButton);
-        buttonPanel.add(cancelButton);
-
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        panel.add(inputPanel, BorderLayout.CENTER);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-
-        setContentPane(panel);
-        pack();
-        setLocationRelativeTo(null);
-
-        saveButton.addActionListener(this::saveOrder);
-        cancelButton.addActionListener(e -> dispose());
+        this.add(new JLabel("Book:"));
+        this.add(this.bookMenu);
+        this.add(new JLabel("Quantity:"));
+        this.add(this.quantitySpinner);
     }
 
-    private void saveOrder(ActionEvent e) {
-        var order = new Order(users.get(userMenu.getSelectedIndex()),
-                Collections.singletonList(new BookOrder(books.get(bookMenu.getSelectedIndex()),
-                        (int) quantitySpinner.getValue()
-                )),
-                LocalDateTime.ofInstant(((Date) dateSpinner.getValue()).toInstant(),
-                        ZoneId.systemDefault()
-                )
-        );
-        try {
-            order.insert();
-            dispose();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Failed to save order: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+    BookOrder toBookOrder() {
+        return new BookOrder(this.books.get(this.bookMenu.getSelectedIndex()), (int) this.quantitySpinner.getValue());
     }
 }
