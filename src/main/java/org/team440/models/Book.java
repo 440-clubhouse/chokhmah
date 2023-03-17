@@ -5,9 +5,13 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public record Book(int id, String title, String author, int quantity, double price) {
-    public Book(String title, String author, int quantity, double price) {
+public record Book(Integer id, String title, String author, Integer quantity, Double price) {
+    public Book(String title, String author, Integer quantity, Double price) {
         this(0, title, author, quantity, price);
+    }
+
+    public Book() {
+        this("", "", 1, 0.0);
     }
 
     public static List<Book> find() throws SQLException {
@@ -30,7 +34,7 @@ public record Book(int id, String title, String author, int quantity, double pri
         }
     }
 
-    public static Book findOne(int id) throws SQLException {
+    public static Book findOne(Integer id) throws SQLException {
         try (var connection = Db.pool.getConnection()) {
             try (var statement = connection.prepareStatement("SELECT * FROM books where id = ?")) {
                 statement.setInt(1, id);
@@ -48,7 +52,7 @@ public record Book(int id, String title, String author, int quantity, double pri
         }
     }
 
-    public static void delete(int id) throws SQLException {
+    public static void delete(Integer id) throws SQLException {
         try (var connection = Db.pool.getConnection()) {
             try (var statement = connection.prepareStatement("DELETE FROM books WHERE id = ?")) {
                 statement.setInt(1, id);
@@ -57,12 +61,13 @@ public record Book(int id, String title, String author, int quantity, double pri
         }
     }
 
-    public int insert() throws SQLException {
+    public Integer insert() throws SQLException {
         try (var connection = Db.pool.getConnection()) {
             try (var statement = connection.prepareStatement(
                     "INSERT INTO books (title, author, quantity, price) VALUES (?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS
-            )) {
+            )
+            ) {
                 statement.setString(1, this.title);
                 statement.setString(2, this.author);
                 statement.setInt(3, this.quantity);
@@ -78,7 +83,8 @@ public record Book(int id, String title, String author, int quantity, double pri
     public void update() throws SQLException {
         try (var connection = Db.pool.getConnection()) {
             try (var statement = connection.prepareStatement(
-                    "UPDATE books SET title = ?, author = ?, quantity = ?, price = ? WHERE id = ?")) {
+                    "UPDATE books SET title = ?, author = ?, quantity = ?, price = ? WHERE id = ?")
+            ) {
                 statement.setString(1, this.title);
                 statement.setString(2, this.author);
                 statement.setInt(3, this.quantity);

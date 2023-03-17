@@ -73,7 +73,7 @@ public class OrderMenu extends JFrame {
 class AddOrderDialog extends JDialog {
     private Integer boxCounter = 1;
 
-    AddOrderDialog(Frame owner) {
+    AddOrderDialog(JFrame owner) {
         super(owner, "Add an order", true);
         try {
             var users = User.find();
@@ -132,8 +132,8 @@ class AddOrderDialog extends JDialog {
             var bottomPanel = new JPanel();
             bottomPanel.add(addButton);
             bottomPanel.add(removeButton);
-            bottomPanel.add(saveButton);
             bottomPanel.add(cancelButton);
+            bottomPanel.add(saveButton);
 
             var mainPanel = new JPanel(new BorderLayout(5, 5));
             mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));

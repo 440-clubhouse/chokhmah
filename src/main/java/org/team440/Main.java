@@ -1,13 +1,11 @@
 package org.team440;
 
 import org.team440.models.Db;
-import org.team440.ui.AdminMain;
-
-import java.sql.SQLException;
+import org.team440.ui.MainMenu;
 
 public class Main {
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) {
         Db.init();
-        new AdminMain();
+        new MainMenu();
     }
 }

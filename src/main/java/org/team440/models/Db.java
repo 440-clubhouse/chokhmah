@@ -9,6 +9,6 @@ public class Db {
         pool = new HikariDataSource();
         pool.setJdbcUrl("jdbc:mariadb://localhost:3306/chokhmah");
         pool.setUsername("root");
-        pool.setPassword("1");
+        pool.setPassword(System.getenv("PASSWORD"));
     }
 }
