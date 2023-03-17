@@ -7,8 +7,8 @@ public class Db {
 
     public static void init() {
         pool = new HikariDataSource();
-        pool.setJdbcUrl("jdbc:mariadb://localhost:3306/chokhmah");
-        pool.setUsername("root");
+        pool.setJdbcUrl(System.getenv("URL"));
+        pool.setUsername(System.getenv("USERNAME"));
         pool.setPassword(System.getenv("PASSWORD"));
     }
 }
