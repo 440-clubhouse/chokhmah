@@ -63,7 +63,7 @@ public record Order(Integer id, User user, List<BookOrder> bookOrders, LocalDate
     public String bookOrdersToString() {
         return this.bookOrders.stream()
                 .map(bookOrder -> bookOrder.book().title() + ": " + bookOrder.quantity())
-                .collect(Collectors.joining("\n"));
+                .collect(Collectors.joining("; "));
     }
 
     public Double amount() {

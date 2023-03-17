@@ -24,6 +24,10 @@ public class UserMenu extends JFrame {
                 if (name == null) {
                     return;
                 }
+                if (name.equals("")) {
+                    ErrorMessageBox.of("empty name");
+                    return;
+                }
                 try {
                     model.addRow(new Object[]{new User(name).insert(), name});
                 } catch (SQLException exception) {
@@ -38,8 +42,8 @@ public class UserMenu extends JFrame {
                 try {
                     User.delete((Integer) model.getValueAt(selectedRow, 0));
                     model.removeRow(selectedRow);
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
+                } catch (SQLException exception) {
+                    ErrorMessageBox.of(exception);
                 }
             });
             var popupMenu = new JPopupMenu();

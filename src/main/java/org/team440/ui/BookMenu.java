@@ -147,9 +147,15 @@ class BookDialog extends JDialog {
     }
 
     private void insertBook(ActionEvent e) {
+        var title = this.titleField.getText();
+        var author = this.authorField.getText();
+        if (title.equals("") || author.equals("")) {
+            ErrorMessageBox.of("empty title or author");
+            return;
+        }
         try {
-            new Book(this.titleField.getText(),
-                    this.authorField.getText(),
+            new Book(title,
+                    author,
                     (Integer) this.quantitySpinner.getValue(),
                     (Double) this.priceSpinner.getValue()
             ).insert();
@@ -160,10 +166,16 @@ class BookDialog extends JDialog {
     }
 
     private void updateBook(ActionEvent e) {
+        var title = this.titleField.getText();
+        var author = this.authorField.getText();
+        if (title.equals("") || author.equals("")) {
+            ErrorMessageBox.of("empty title or author");
+            return;
+        }
         try {
             new Book(this.book.id(),
-                    this.titleField.getText(),
-                    this.authorField.getText(),
+                    title,
+                    author,
                     (Integer) this.quantitySpinner.getValue(),
                     (Double) this.priceSpinner.getValue()
             ).update();
