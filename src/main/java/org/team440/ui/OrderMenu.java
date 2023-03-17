@@ -14,9 +14,11 @@ import java.awt.event.WindowEvent;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OrderMenu extends JFrame {
     private final JTable table = new JTable();
@@ -61,7 +63,8 @@ public class OrderMenu extends JFrame {
         try {
             this.model = new DefaultTableModel(Order.find()
                     .stream()
-                    .map(order -> new Object[]{order.id(), order.user().name(), order.bookOrdersToString(), order.amount(), order.date()})
+                    .map(order -> new Object[]{order.id(), order.user().name(), order.bookOrdersToString(), order.amount(), order.date().format(
+                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))})
                     .toArray(Object[][]::new), new String[]{"ID", "User name", "Books", "Amount", "Date"});
             this.table.setModel(this.model);
         } catch (SQLException e) {
@@ -106,6 +109,16 @@ class AddOrderDialog extends JDialog {
                 this.setLocationRelativeTo(null);
             });
             saveButton.addActionListener(e -> {
+                var hasSame = Arrays.stream(verticalBox.getComponents())
+                        .map(component -> ((BookOrderPanel) component).bookId())
+                        .collect(Collectors.toMap(id -> id, id -> 1, Integer::sum))
+                        .entrySet()
+                        .stream()
+                        .anyMatch(entry -> entry.getValue() > 1);
+                if (hasSame) {
+                    ErrorMessageBox.of("duplicate book items found");
+                    return;
+                }
                 try {
                     new Order(
                             users.get(userMenu.getSelectedIndex()),
@@ -169,5 +182,9 @@ class BookOrderPanel extends JPanel {
 
     BookOrder toBookOrder() {
         return new BookOrder(this.books.get(this.bookMenu.getSelectedIndex()), (int) this.quantitySpinner.getValue());
+    }
+
+    Integer bookId() {
+        return this.books.get(this.bookMenu.getSelectedIndex()).id();
     }
 }
