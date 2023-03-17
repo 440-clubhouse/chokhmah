@@ -5,9 +5,13 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public record Book(int id, String title, String author, int quantity, double price) {
-    public Book(String title, String author, int quantity, double price) {
+public record Book(Integer id, String title, String author, Integer quantity, Double price) {
+    public Book(String title, String author, Integer quantity, Double price) {
         this(0, title, author, quantity, price);
+    }
+
+    public Book() {
+        this(0, "", "", 0, 0.0);
     }
 
     public static List<Book> find() throws SQLException {

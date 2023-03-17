@@ -2,6 +2,7 @@ package org.team440.ui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 
 public class AdminMain extends JFrame {
     public AdminMain() {
@@ -26,18 +27,29 @@ public class AdminMain extends JFrame {
         this.add(toBookMenuPanel);
         this.add(toOrderMenuPanel);
         toUserMenu.addActionListener((event) -> {
-            new UserMenu();
+            UserMenu menu;
+            try {
+                menu = new UserMenu();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+            menu.setVisible(true);
         });
         toBookMenu.addActionListener((event) -> {
-            new BookMenu();
+            var menu = new BookMenu();
+            menu.setVisible(true);
         });
         toOrderMenu.addActionListener((e) -> {
-            new OrderMenu();
+            var menu = new OrderMenu();
+            menu.setVisible(true);
         });
 
         this.setBounds(300, 200, 300, 250);
         this.setResizable(false);
         this.setLocationRelativeTo(null);
+    }
+
+    public void showUI() {
         this.setVisible(true);
     }
 }

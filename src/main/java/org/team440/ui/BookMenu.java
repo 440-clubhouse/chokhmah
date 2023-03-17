@@ -90,12 +90,12 @@ public class BookMenu extends JFrame {
             int quantity = (int) model.getValueAt(row, 3);
             double price = (double) model.getValueAt(row, 4);
             Book book = new Book(id, title, author, quantity, price);
-            new EditBookDialog(this, book).setVisible(true);
+            new BookDialog(this,book,1).setVisible(true);
         }
     }
 
     private void createBook(ActionEvent e) {
-        new CreateBookDialog(this).setVisible(true);
+        new BookDialog(this, new Book(),0).setVisible(true);
     }
 
     private void deleteBook(ActionEvent e) {
@@ -112,17 +112,18 @@ public class BookMenu extends JFrame {
     }
 }
 
-class CreateBookDialog extends JDialog {
+
+class BookDialog extends JDialog {
     private final JTextField titleField;
     private final JTextField authorField;
     private final JSpinner quantitySpinner;
     private final JSpinner priceSpinner;
     private Book book;
 
-    CreateBookDialog(Frame owner) {
+    public BookDialog(Frame owner,Book book,int flag) {
         super(owner, "Book Creation", true);
-        book = new Book("", "", 0, 0);
 
+        this.book = book;
         // Create UI components
         JLabel titleLabel = new JLabel("Title:");
         JLabel authorLabel = new JLabel("Author:");
@@ -130,9 +131,9 @@ class CreateBookDialog extends JDialog {
         JLabel priceLabel = new JLabel("Price:");
         titleField = new JTextField(book.title());
         authorField = new JTextField(book.author());
-        SpinnerNumberModel quantityModel = new SpinnerNumberModel(book.quantity(), 0, Integer.MAX_VALUE, 1);
+        SpinnerNumberModel quantityModel = new SpinnerNumberModel(book.quantity().intValue(), 0, Integer.MAX_VALUE, 1);
         quantitySpinner = new JSpinner(quantityModel);
-        SpinnerNumberModel priceModel = new SpinnerNumberModel(book.price(), 0.0, Double.MAX_VALUE, 0.01);
+        SpinnerNumberModel priceModel = new SpinnerNumberModel(book.price().doubleValue(), 0.0, Double.MAX_VALUE, 0.01);
         priceSpinner = new JSpinner(priceModel);
         JButton saveButton = new JButton("Save");
         JButton cancelButton = new JButton("Cancel");
@@ -162,12 +163,16 @@ class CreateBookDialog extends JDialog {
         setLocationRelativeTo(null);
 
         // Add action listeners
-        saveButton.addActionListener(this::saveBook);
+        if (flag == 0) {
+            saveButton.addActionListener(this::saveBook);
+        }else {
+            saveButton.addActionListener(this::updateBook);
+        }
+
         cancelButton.addActionListener(e -> dispose());
     }
 
-
-    private void saveBook(ActionEvent e) {
+        private void saveBook(ActionEvent e) {
         book = new Book(
                 titleField.getText(),
                 authorField.getText(),
@@ -175,7 +180,7 @@ class CreateBookDialog extends JDialog {
                 (double) priceSpinner.getValue()
         );
         try {
-            book.insert();
+            book.insert();  /**/
             dispose();
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -187,63 +192,6 @@ class CreateBookDialog extends JDialog {
             );
         }
     }
-}
-
-
-class EditBookDialog extends JDialog {
-    private final JTextField titleField;
-    private final JTextField authorField;
-    private final JSpinner quantitySpinner;
-    private final JSpinner priceSpinner;
-    private Book book;
-
-    EditBookDialog(Frame owner, Book book) {
-        super(owner, "Book Edit", true);
-        this.book = book;
-
-        // Create UI components
-        JLabel titleLabel = new JLabel("Title:");
-        JLabel authorLabel = new JLabel("Author:");
-        JLabel quantityLabel = new JLabel("Quantity:");
-        JLabel priceLabel = new JLabel("Price:");
-        titleField = new JTextField(book.title());
-        authorField = new JTextField(book.author());
-        SpinnerNumberModel quantityModel = new SpinnerNumberModel(book.quantity(), 0, Integer.MAX_VALUE, 1);
-        quantitySpinner = new JSpinner(quantityModel);
-        SpinnerNumberModel priceModel = new SpinnerNumberModel(book.price(), 0.0, Double.MAX_VALUE, 0.01);
-        priceSpinner = new JSpinner(priceModel);
-        JButton saveButton = new JButton("Save");
-        JButton cancelButton = new JButton("Cancel");
-
-        // Layout UI components
-        JPanel inputPanel = new JPanel(new GridLayout(4, 2, 5, 5));
-        inputPanel.add(titleLabel);
-        inputPanel.add(titleField);
-        inputPanel.add(authorLabel);
-        inputPanel.add(authorField);
-        inputPanel.add(quantityLabel);
-        inputPanel.add(quantitySpinner);
-        inputPanel.add(priceLabel);
-        inputPanel.add(priceSpinner);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.add(saveButton);
-        buttonPanel.add(cancelButton);
-
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        panel.add(inputPanel, BorderLayout.CENTER);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-
-        setContentPane(panel);
-        pack();
-        setLocationRelativeTo(null);
-
-        // Add action listeners
-        saveButton.addActionListener(this::updateBook);
-        cancelButton.addActionListener(e -> dispose());
-    }
-
 
     private void updateBook(ActionEvent e) {
         book = new Book(
@@ -267,5 +215,232 @@ class EditBookDialog extends JDialog {
         }
     }
 }
+//    private void controlBook(ActionEvent e) {
+//        book = new Book(
+//                this.book.id(),
+//                titleField.getText(),
+//                authorField.getText(),
+//                (int) quantitySpinner.getValue(),
+//                (double) priceSpinner.getValue()
+//        );
+//        try {
+//            book.update();    /**/
+//            book.insert();    /**/
+//            dispose();
+//        } catch (SQLException ex) {
+//            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(
+//                    this,
+//                    "Failed to save book: " + ex.getMessage(),
+//                    "Error",
+//                    JOptionPane.ERROR_MESSAGE
+//            );
+//        }
+//    }
+//}
 
 
+//    private void saveBook(ActionEvent e) {
+//        book = new Book(
+//                titleField.getText(),
+//                authorField.getText(),
+//                (int) quantitySpinner.getValue(),
+//                (double) priceSpinner.getValue()
+//        );
+//        try {
+//            book.insert();  /**/
+//            dispose();
+//        } catch (SQLException ex) {
+//            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(
+//                    this,
+//                    "Failed to save book: " + ex.getMessage(),
+//                    "Error",
+//                    JOptionPane.ERROR_MESSAGE
+//            );
+//        }
+//    }
+//
+//    private void updateBook(ActionEvent e) {
+//        book = new Book(
+//                this.book.id(),
+//                titleField.getText(),
+//                authorField.getText(),
+//                (int) quantitySpinner.getValue(),
+//                (double) priceSpinner.getValue()
+//        );
+//        try {
+//            book.update();
+//            dispose();
+//        } catch (SQLException ex) {
+//            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(
+//                    this,
+//                    "Failed to save book: " + ex.getMessage(),
+//                    "Error",
+//                    JOptionPane.ERROR_MESSAGE
+//            );
+//        }
+//    }
+//}
+//class CreateBookDialog extends JDialog {
+//    private final JTextField titleField;
+//    private final JTextField authorField;
+//    private final JSpinner quantitySpinner;
+//    private final JSpinner priceSpinner;
+//    private Book book;
+//
+//    public CreateBookDialog(Frame owner) {
+//        super(owner, "Book Creation", true);
+//        book = new Book("", "", 0, 0);
+//
+//        // Create UI components
+//        JLabel titleLabel = new JLabel("Title:");
+//        JLabel authorLabel = new JLabel("Author:");
+//        JLabel quantityLabel = new JLabel("Quantity:");
+//        JLabel priceLabel = new JLabel("Price:");
+//        titleField = new JTextField(book.title());
+//        authorField = new JTextField(book.author());
+//        SpinnerNumberModel quantityModel = new SpinnerNumberModel(book.quantity(), 0, Integer.MAX_VALUE, 1);
+//        quantitySpinner = new JSpinner(quantityModel);
+//        SpinnerNumberModel priceModel = new SpinnerNumberModel(book.price(), 0.0, Double.MAX_VALUE, 0.01);
+//        priceSpinner = new JSpinner(priceModel);
+//        JButton saveButton = new JButton("Save");
+//        JButton cancelButton = new JButton("Cancel");
+//
+//        // Layout UI components
+//        JPanel inputPanel = new JPanel(new GridLayout(4, 2, 5, 5));
+//        inputPanel.add(titleLabel);
+//        inputPanel.add(titleField);
+//        inputPanel.add(authorLabel);
+//        inputPanel.add(authorField);
+//        inputPanel.add(quantityLabel);
+//        inputPanel.add(quantitySpinner);
+//        inputPanel.add(priceLabel);
+//        inputPanel.add(priceSpinner);
+//
+//        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+//        buttonPanel.add(saveButton);
+//        buttonPanel.add(cancelButton);
+//
+//        JPanel panel = new JPanel(new BorderLayout(5, 5));
+//        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+//        panel.add(inputPanel, BorderLayout.CENTER);
+//        panel.add(buttonPanel, BorderLayout.SOUTH);
+//
+//        setContentPane(panel);
+//        pack();
+//        setLocationRelativeTo(null);
+//
+//        // Add action listeners
+//        saveButton.addActionListener(this::saveBook);
+//        cancelButton.addActionListener(e -> dispose());
+//
+//
+//
+//
+//
+//    }
+//
+//    private void saveBook(ActionEvent e) {
+//        book = new Book(
+//                titleField.getText(),
+//                authorField.getText(),
+//                (int) quantitySpinner.getValue(),
+//                (double) priceSpinner.getValue()
+//        );
+//        try {
+//            book.insert();
+//            dispose();
+//        } catch (SQLException ex) {
+//            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(
+//                    this,
+//                    "Failed to save book: " + ex.getMessage(),
+//                    "Error",
+//                    JOptionPane.ERROR_MESSAGE
+//            );
+//        }
+//    }
+//}
+//
+//
+//class EditBookDialog extends JDialog {
+//    private final JTextField titleField;
+//    private final JTextField authorField;
+//    private final JSpinner quantitySpinner;
+//    private final JSpinner priceSpinner;
+//    private Book book;
+//
+//    public EditBookDialog(Frame owner, Book book) {
+//        super(owner, "Book Edit", true);
+//        this.book = book;
+//
+//        // Create UI components
+//        JLabel titleLabel = new JLabel("Title:");
+//        JLabel authorLabel = new JLabel("Author:");
+//        JLabel quantityLabel = new JLabel("Quantity:");
+//        JLabel priceLabel = new JLabel("Price:");
+//        titleField = new JTextField(book.title());
+//        authorField = new JTextField(book.author());
+//        SpinnerNumberModel quantityModel = new SpinnerNumberModel(book.quantity(), 0, Integer.MAX_VALUE, 1);
+//        quantitySpinner = new JSpinner(quantityModel);
+//        SpinnerNumberModel priceModel = new SpinnerNumberModel(book.price(), 0.0, Double.MAX_VALUE, 0.01);
+//        priceSpinner = new JSpinner(priceModel);
+//        JButton saveButton = new JButton("Save");
+//        JButton cancelButton = new JButton("Cancel");
+//
+//        // Layout UI components
+//        JPanel inputPanel = new JPanel(new GridLayout(4, 2, 5, 5));
+//        inputPanel.add(titleLabel);
+//        inputPanel.add(titleField);
+//        inputPanel.add(authorLabel);
+//        inputPanel.add(authorField);
+//        inputPanel.add(quantityLabel);
+//        inputPanel.add(quantitySpinner);
+//        inputPanel.add(priceLabel);
+//        inputPanel.add(priceSpinner);
+//
+//        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+//        buttonPanel.add(saveButton);
+//        buttonPanel.add(cancelButton);
+//
+//        JPanel panel = new JPanel(new BorderLayout(5, 5));
+//        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+//        panel.add(inputPanel, BorderLayout.CENTER);
+//        panel.add(buttonPanel, BorderLayout.SOUTH);
+//
+//        setContentPane(panel);
+//        pack();
+//        setLocationRelativeTo(null);
+//
+//        // Add action listeners
+//        saveButton.addActionListener(this::updateBook);
+//        cancelButton.addActionListener(e -> dispose());
+//    }
+//
+//
+//    private void updateBook(ActionEvent e) {
+//        book = new Book(
+//                this.book.id(),
+//                titleField.getText(),
+//                authorField.getText(),
+//                (int) quantitySpinner.getValue(),
+//                (double) priceSpinner.getValue()
+//        );
+//        try {
+//            book.update();
+//            dispose();
+//        } catch (SQLException ex) {
+//            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(
+//                    this,
+//                    "Failed to save book: " + ex.getMessage(),
+//                    "Error",
+//                    JOptionPane.ERROR_MESSAGE
+//            );
+//        }
+//    }
+//}
+//
+//
